@@ -23,6 +23,8 @@ This server authenticates every request against `MCP_ACCESS_KEY` using a constan
 
 **Companion schema exposure — please read before deploying publicly.** The enhanced-thoughts schema this server depends on is intended to install with `service_role`-only grants on the sensitive RPCs (`search_thoughts_text`, `brain_stats_aggregate`, `get_thought_connections`) — no `anon` GRANTs by default. That means those RPCs are reachable only via authenticated server-side code, including this MCP server. If your deployment's copy of that schema also grants `anon`, or if you later add public grants for a dashboard, be aware: `SECURITY DEFINER` + `anon` grant is an RLS bypass because the function body runs with the function owner's privileges. Combined with a publicly-reachable enhanced-mcp deployment, this would let anyone with your Supabase project URL + anon key read thought content directly via those RPCs — routing around this server's sensitivity filtering. Audit the grants on your companion schemas before exposing this MCP outside a trusted network.
 
+`MCP_ACCESS_KEY` is a single shared secret gating this **single-tenant** server, so use a high-entropy value (≥32 random bytes) and rotate it by updating the secret. CORS is intentionally `Access-Control-Allow-Origin: *` — safe here because authentication is header-based and carries no ambient browser credentials, and it is required for Electron/browser connectors (Claude Desktop, claude.ai).
+
 ## Credential Tracker
 
 Copy this block into a text editor and fill it in as you go.
