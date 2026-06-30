@@ -107,4 +107,3 @@ spec:
           readOnly: true
           volumeAttributes:
             secretProviderClass: {{ include "dlvy-open-brain.fullname" . }}
-  updateStrategy: recreate
