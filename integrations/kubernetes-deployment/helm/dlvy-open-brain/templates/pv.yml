@@ -16,7 +16,7 @@ spec:
     - nconnect=4
   csi:
     driver: blob.csi.azure.com
-    readOnly: false
+    volumeHandle: {{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}_{{ .Values.openbrain.db.persistentVolumeClaim.shareName }}
     volumeAttributes:
       containerName: {{ .Values.openbrain.db.persistentVolumeClaim.shareName }}
       storageAccount: {{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}
