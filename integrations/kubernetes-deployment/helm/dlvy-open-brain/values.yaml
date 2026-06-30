@@ -18,6 +18,7 @@ openbrain:
       storageAccount: dlvyobprodstor
       size: 50Gi
       shareName: openbrain-db
+      resourceGroup: dlvy-openbrain-prod-rg
   mcpServer:
     env:
       chatApiBase: https://dlvy-prod-aif.openai.azure.com/openai/v1

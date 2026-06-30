@@ -8,22 +8,18 @@ metadata:
 spec:
   capacity:
     storage: {{ .Values.openbrain.db.persistentVolumeClaim.size }}
-  azureFile:
-    secretName: {{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}-key
-    shareName: {{ .Values.openbrain.db.persistentVolumeClaim.shareName }}
-    secretNamespace: {{ .Release.Namespace }}
   accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: azurefile-csi
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain  # If set as "Delete" container would be removed after pvc deletion
+  storageClassName: azureblob-nfs-premium
   mountOptions:
-    - file_mode=0777
-    - gid=1001
-    - nobrl
-    - mfsymlinks
-    - uid=1001
-    - dir_mode=0777
-    - actimeo=30
-    - cache=none
-  volumeMode: Filesystem
+    - nconnect=4
+  csi:
+    driver: blob.csi.azure.com
+    readOnly: false
+    volumeAttributes:
+      containerName: {{ .Values.openbrain.db.persistentVolumeClaim.shareName }}
+      storageAccount: {{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}
+      resourceGroup: {{ .Values.openbrain.db.persistentVolumeClaim.resourceGroup }}
+      protocol: nfs
 {{- end }}
