@@ -16,6 +16,10 @@ spec:
         {{- include "dlvy-open-brain.selectorLabels" . | nindent 8 }}
         azure.workload.identity/use: "true"
     spec:
+      securityContext:
+        runAsUser: 999      # Sets the default UID for container processes
+        runAsGroup: 999     # Sets the primary GID for container processes
+        fsGroup: 999        # Sets the ownership of mounted volumes (critical for PVs)
       containers:
       - env:
         - name: POSTGRES_USER

@@ -18,10 +18,10 @@ spec:
   storageClassName: azurefile-csi
   mountOptions:
     - file_mode=0750
-    - gid=0
+    - gid=999
     - nobrl
     - mfsymlinks
-    - uid=0
+    - uid=999
     - dir_mode=0750
     - actimeo=30
     - cache=none
