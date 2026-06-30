@@ -41,7 +41,7 @@ stages:
       inputs:
         command: buildAndPush
         repository: '$(imageName)'
-        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        dockerfile: '$(Build.SourcesDirectory)/integrations/kubernetes-deployment/Dockerfile'
         containerRegistry: '$(containerRegistry)'
         tags: |
           $(imageTag)

@@ -50,7 +50,7 @@ stages:
         namespace: 'dlvy-prod'
         command: 'upgrade'
         chartType: 'FilePath'
-        chartPath: './helm/dlvy-open-brain'
+        chartPath: '$(Build.SourcesDirectory)/integrations/kubernetes-deployment/helm/dlvy-open-brain'
         releaseName: '$(appName)'
         overrideValues: 'openbrain.mcpServer.image.tag=$(imageTag),fullnameOverride=$(fullnameOverride)'
         install: true
@@ -64,7 +64,7 @@ stages:
         namespace: 'dlvy-prod'
         command: 'upgrade'
         chartType: 'FilePath'
-        chartPath: './helm/dlvy-open-brain'
+        chartPath: '$(Build.SourcesDirectory)/integrations/kubernetes-deployment/helm/dlvy-open-brain'
         releaseName: '$(appName)'
         overrideValues: 'openbrain.mcpServer.image.tag=$(imageTag),fullnameOverride=$(fullnameOverride)'
         install: true
