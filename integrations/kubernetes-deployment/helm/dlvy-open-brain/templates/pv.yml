@@ -17,12 +17,12 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   storageClassName: azurefile-csi
   mountOptions:
-    - file_mode=0777
+    - file_mode=0750
     - gid=1001
     - nobrl
     - mfsymlinks
     - uid=1001
-    - dir_mode=0777
+    - dir_mode=0750
     - actimeo=30
     - cache=none
   volumeMode: Filesystem
