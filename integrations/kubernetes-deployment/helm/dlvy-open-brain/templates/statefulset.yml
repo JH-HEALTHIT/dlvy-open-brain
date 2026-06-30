@@ -85,7 +85,7 @@ spec:
             port: 8000
         resources: {{- toYaml .Values.openbrain.mcpServer.resources | nindent 10 }}
       nodeSelector: {{- toYaml .Values.openbrain.nodeSelector | nindent 8 }}
-      serviceAccountName: {{ include "dlvy-open-brain.fullname" . }}-sa
+      serviceAccountName: {{ .Values.serviceAccount.name }}
       tolerations: {{- toYaml .Values.openbrain.tolerations | nindent 8 }}
       topologySpreadConstraints: {{- toYaml .Values.openbrain.topologySpreadConstraints | nindent 8 }}
       volumes:
