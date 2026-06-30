@@ -1,0 +1,70 @@
+trigger:
+  batch: true
+  tags:
+    include:
+      - deploy/v*.*.*-*
+
+pr: none
+
+variables:
+  - name: appName
+    value: 'openbrain-mcp-server'
+  - name: helmVersion
+    value: '4.2.2'
+  - name: fullnameOverride
+    value: 'openbrain-prod'
+
+stages:
+- stage: release_aks
+  displayName: "Release to AKS"
+  jobs:
+  - job: deploy
+    displayName: "Deploy via Helm"
+    pool: 'hit-pie-devops-pool'
+    steps:
+    - task: HelmInstaller@1
+      name: install_helm
+      displayName: "Install Helm"
+      inputs:
+        helmVersionToInstall: '$(helmVersion)'
+    - task: Bash@3
+      displayName: "Extract Version Number"
+      env:
+        SOURCE_BRANCH: $(Build.SourceBranchName)
+      inputs:
+        targetType: 'inline'
+        script: |
+          #!/bin/bash
+          echo "Extracting version tag"
+          pattern='v(.*)-.*'
+          [[ $SOURCE_BRANCH =~ $pattern ]]
+          export IMAGE_TAG=${BASH_REMATCH[1]}
+          echo "Version tag: $IMAGE_TAG"
+          echo "##vso[task.setvariable variable=imageTag]$IMAGE_TAG"
+    - task: HelmDeploy@1
+      name: helm_release_dry_run
+      displayName: "Helm Release - Dry Run"
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceConnection: 'hit-prod-aks'
+        namespace: 'dlvy-prod'
+        command: 'upgrade'
+        chartType: 'FilePath'
+        chartPath: './helm/dlvy-open-brain'
+        releaseName: '$(appName)'
+        overrideValues: 'openbrain.mcpServer.image.tag=$(imageTag),fullnameOverride=$(fullnameOverride)'
+        install: true
+        arguments: '--debug --dry-run'
+    - task: HelmDeploy@1
+      name: helm_release
+      displayName: "Helm Release"
+      inputs:
+        connectionType: 'Kubernetes Service Connection'
+        kubernetesServiceConnection: 'hit-prod-aks'
+        namespace: 'dlvy-prod'
+        command: 'upgrade'
+        chartType: 'FilePath'
+        chartPath: './helm/dlvy-open-brain'
+        releaseName: '$(appName)'
+        overrideValues: 'openbrain.mcpServer.image.tag=$(imageTag),fullnameOverride=$(fullnameOverride)'
+        install: true

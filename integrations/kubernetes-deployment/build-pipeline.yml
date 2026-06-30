@@ -1,0 +1,47 @@
+trigger:
+  batch: true
+  tags:
+    include:
+      - build/v*.*.*-*
+
+pr: none
+
+variables:
+  - name: containerRegistry
+    value: 'JH-HIT ACR'
+  - name: imageName
+    value: 'openbrain-mcp-server'
+
+stages:
+- stage: build_image
+  displayName: "Build Image"
+  jobs:
+  - job: build_and_push
+    displayName: "Build and Push"
+    pool: 'hit-pie-devops-pool'
+    steps:
+    - task: Bash@3
+      displayName: "Extract Version Number"
+      env:
+        SOURCE_BRANCH: $(Build.SourceBranchName)
+      inputs:
+        targetType: 'inline'
+        script: |
+          #!/bin/bash
+          echo "Extracting version tag"
+          pattern='v(.*)-.*'
+          [[ $SOURCE_BRANCH =~ $pattern ]]
+          export IMAGE_TAG=${BASH_REMATCH[1]}
+          echo "Version tag: $IMAGE_TAG"
+          echo "##vso[task.setvariable variable=imageTag]$IMAGE_TAG"
+    - task: Docker@2
+      name: docker_build
+      displayName: "Build and push the Docker image"
+      condition: succeeded()
+      inputs:
+        command: buildAndPush
+        repository: '$(imageName)'
+        dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        containerRegistry: '$(containerRegistry)'
+        tags: |
+          $(imageTag)

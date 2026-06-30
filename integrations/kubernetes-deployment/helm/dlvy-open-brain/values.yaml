@@ -1,0 +1,79 @@
+kubernetesClusterDomain: cluster.local
+openbrain:
+  db:
+    env:
+      postgresDb: openbrain
+      postgresUser: postgres
+    image:
+      repository: ankane/pgvector
+      tag: v0.5.1
+    resources:
+      limits:
+        memory: 1Gi
+      requests:
+        cpu: 250m
+        memory: 256Mi
+    persistentVolumeClaim:
+      enabled: true
+      storageAccount: dlvyobprodstor
+      size: 50Gi
+      shareName: openbrain-db
+  mcpServer:
+    env:
+      chatApiBase: https://dlvy-prod-aif.openai.azure.com/openai/v1
+      chatModel: openai/gpt-5-mini
+      dbHost: localhost
+      dbName: openbrain
+      dbPort: "5432"
+      dbUser: postgres
+      embeddingApiBase: https://dlvy-prod-aif.openai.azure.com/openai/v1
+      embeddingModel: openai/text-embedding-3-small
+      port: "8000"
+    image:
+      repository: jhhitacr.azurecr.io/openbrain-mcp-server
+      tag: 1.0.0
+    imagePullPolicy: IfNotPresent
+    resources:
+      limits:
+        memory: 512Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+  nodeSelector: {}
+  replicas: 1
+  tolerations: []
+  topologySpreadConstraints: []
+ingress:
+  ingressClass: nginx-prod
+  host: openbrain.hit.jh.edu
+  tlsSecretName: openbrain-prod-tls
+  annotations:
+    nginx.org/client-max-body-size: "100m"
+  certManager:
+    enabled: true
+    issuer: jhsectigo-issuer
+serviceAccount:
+  create: true
+  name: openbrain-sa
+  annotations: {}
+workloadIdentity:
+  clientId: "d7bc3b6c-935c-497e-b124-da78911ab58f"
+keyVault:
+  name: "dlvy-openbrain-prod-kv"
+  tenantId: "9fa4f438-b1e6-473b-803f-86f8aedf0dec"
+  secrets:
+    - chat-api-key
+    - embedding-api-key
+    - mcp-access-key
+    - postgres-password
+  mapping:
+    - secretName: chat-api-key
+      envVarName: CHAT_API_KEY
+    - secretName: embedding-api-key
+      envVarName: EMBEDDING_API_KEY
+    - secretName: mcp-access-key
+      envVarName: MCP_ACCESS_KEY
+    - secretName: postgres-password
+      envVarName: POSTGRES_PASSWORD
+    - secretName: postgres-password
+      envVarName: DB_PASSWORD

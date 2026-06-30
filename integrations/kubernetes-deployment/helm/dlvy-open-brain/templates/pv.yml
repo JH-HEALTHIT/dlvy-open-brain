@@ -1,0 +1,29 @@
+{{- if .Values.openbrain.db.persistentVolumeClaim.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "dlvy-open-brain.fullname" . }}-db-pv
+  labels:
+  {{- include "dlvy-open-brain.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.openbrain.db.persistentVolumeClaim.size }}
+  azureFile:
+    secretName: {{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}-key
+    shareName: {{ .Values.openbrain.db.persistentVolumeClaim.shareName }}
+    secretNamespace: {{ .Release.Namespace }}
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azurefile-csi
+  mountOptions:
+    - file_mode=0777
+    - gid=1001
+    - nobrl
+    - mfsymlinks
+    - uid=1001
+    - dir_mode=0777
+    - actimeo=30
+    - cache=none
+  volumeMode: Filesystem
+{{- end }}
