@@ -8,22 +8,20 @@ metadata:
 spec:
   capacity:
     storage: {{ .Values.openbrain.db.persistentVolumeClaim.size }}
-  azureFile:
-    secretName: {{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}-key
-    shareName: {{ .Values.openbrain.db.persistentVolumeClaim.shareName }}
-    secretNamespace: {{ .Release.Namespace }}
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: azurefile-csi
   mountOptions:
-    - file_mode=0750
-    - gid=999
-    - nobrl
-    - mfsymlinks
-    - uid=999
-    - dir_mode=0750
+    - nconnect=4
+    - noresvport
     - actimeo=30
-    - cache=none
-  volumeMode: Filesystem
+  storageClassName: {{ include "dlvy-open-brain.fullname" . }}-db-nfs
+  csi:
+    driver: file.csi.azure.com
+    volumeHandle: "{{ .Values.openbrain.db.persistentVolumeClaim.resourceGroup }}#{{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}#{{ .Values.openbrain.db.persistentVolumeClaim.shareName }}"
+    volumeAttributes:
+      protocol: nfs
+      resourceGroup: "{{ .Values.openbrain.db.persistentVolumeClaim.resourceGroup }}"
+      storageAccount: "{{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}"
+      shareName: "{{ .Values.openbrain.db.persistentVolumeClaim.shareName }}"
 {{- end }}

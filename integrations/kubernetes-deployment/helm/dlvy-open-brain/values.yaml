@@ -16,7 +16,7 @@ openbrain:
     persistentVolumeClaim:
       enabled: true
       storageAccount: dlvyobprodstor
-      size: 50Gi
+      size: 100Gi
       shareName: openbrain-db
       resourceGroup: dlvy-openbrain-prod-rg
   mcpServer:
