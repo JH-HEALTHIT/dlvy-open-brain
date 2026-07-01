@@ -15,6 +15,11 @@ spec:
     - nconnect=4
     - noresvport
     - actimeo=30
+    - sec=sys
+    - rsize=1048576
+    - wsize=1048576
+    - vers=4
+    - minorversion=1
   storageClassName: {{ include "dlvy-open-brain.fullname" . }}-db-nfs
   csi:
     driver: file.csi.azure.com
