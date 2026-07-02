@@ -59,6 +59,8 @@ spec:
           value: {{ quote .Values.openbrain.mcpServer.env.dbName }}
         - name: DB_USER
           value: {{ quote .Values.openbrain.mcpServer.env.dbUser }}
+        - name: EMBEDDING_API_BASE
+          value: {{ quote .Values.openbrain.mcpServer.env.embeddingApiBase }}
         - name: EMBEDDING_MODEL
           value: {{ quote .Values.openbrain.mcpServer.env.embeddingModel }}
         - name: CHAT_API_BASE
