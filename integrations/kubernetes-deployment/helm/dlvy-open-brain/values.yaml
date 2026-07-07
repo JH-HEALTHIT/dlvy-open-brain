@@ -52,7 +52,7 @@ ingress:
     nginx.org/client-max-body-size: "100m"
   certManager:
     enabled: true
-    issuer: jhsectigo-issuer
+    issuer: jhcertinext-issuer
 serviceAccount:
   create: true
   name: openbrain-sa
