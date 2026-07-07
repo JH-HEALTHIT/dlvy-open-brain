@@ -1,0 +1,16 @@
+{{- if .Values.openbrain.db.persistentVolumeClaim.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "dlvy-open-brain.fullname" . }}-db-pvc
+  labels:
+  {{- include "dlvy-open-brain.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.openbrain.db.persistentVolumeClaim.size }}
+  volumeName: {{ include "dlvy-open-brain.fullname" . }}-db-pv
+  storageClassName: {{ include "dlvy-open-brain.fullname" . }}-db-nfs
+{{- end }}

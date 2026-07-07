@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "dlvy-open-brain.fullname" . }}-ingress
+  labels:
+  {{- include "dlvy-open-brain.labels" . | nindent 4 }}
+{{- if or .Values.ingress.annotations .Values.ingress.certManager.enabled }}
+  annotations:
+{{- with .Values.ingress.annotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- if .Values.ingress.certManager.enabled }}
+    acme.cert-manager.io/http01-edit-in-place: "true"
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.certManager.issuer }}
+    cert-manager.io/subject-organizations: "Johns Hopkins Health IT"
+    cert-manager.io/subject-organizationalunits: "JH"
+    cert-manager.io/subject-countries: "US"
+    cert-manager.io/subject-provinces: "Maryland"
+    cert-manager.io/subject-localities: "Baltimore"
+    cert-manager.io/private-key-algorithm: "RSA"
+    cert-manager.io/private-key-size: "4096"
+{{- end }}
+{{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.ingressClass }}
+  rules:
+  - host: {{ .Values.ingress.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: '{{ include "dlvy-open-brain.fullname" . }}-service'
+            port:
+              number: 8000
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - {{ .Values.ingress.host }}
+    secretName: {{ .Values.ingress.tlsSecretName }}

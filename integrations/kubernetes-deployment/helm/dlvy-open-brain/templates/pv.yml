@@ -1,0 +1,32 @@
+{{- if .Values.openbrain.db.persistentVolumeClaim.enabled }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ include "dlvy-open-brain.fullname" . }}-db-pv
+  labels:
+  {{- include "dlvy-open-brain.labels" . | nindent 4 }}
+spec:
+  capacity:
+    storage: {{ .Values.openbrain.db.persistentVolumeClaim.size }}
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - nconnect=4
+    - noresvport
+    - actimeo=30
+    - sec=sys
+    - rsize=1048576
+    - wsize=1048576
+    - vers=4
+    - minorversion=1
+  storageClassName: {{ include "dlvy-open-brain.fullname" . }}-db-nfs
+  csi:
+    driver: file.csi.azure.com
+    volumeHandle: "{{ .Values.openbrain.db.persistentVolumeClaim.resourceGroup }}#{{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}#{{ .Values.openbrain.db.persistentVolumeClaim.shareName }}"
+    volumeAttributes:
+      protocol: nfs
+      resourceGroup: "{{ .Values.openbrain.db.persistentVolumeClaim.resourceGroup }}"
+      storageAccount: "{{ .Values.openbrain.db.persistentVolumeClaim.storageAccount }}"
+      shareName: "{{ .Values.openbrain.db.persistentVolumeClaim.shareName }}"
+{{- end }}

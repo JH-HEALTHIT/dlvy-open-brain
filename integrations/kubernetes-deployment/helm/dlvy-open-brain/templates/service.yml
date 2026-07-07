@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dlvy-open-brain.fullname" . }}-service
+  labels:
+  {{- include "dlvy-open-brain.labels" . | nindent 4 }}
+  annotations:
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "dlvy-open-brain.selectorLabels" . | nindent 4 }}
+  ports:
+  - name: mcp
+    port: 8000
+    protocol: TCP
+    targetPort: http

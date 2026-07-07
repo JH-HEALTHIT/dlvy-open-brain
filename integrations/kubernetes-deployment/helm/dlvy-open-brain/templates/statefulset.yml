@@ -1,0 +1,111 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "dlvy-open-brain.fullname" . }}
+  labels:
+  {{- include "dlvy-open-brain.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.openbrain.replicas }}
+  selector:
+    matchLabels:
+      {{- include "dlvy-open-brain.selectorLabels" . | nindent 6 }}
+  serviceName: {{ include "dlvy-open-brain.fullname" . }}-service
+  template:
+    metadata:
+      labels:
+        {{- include "dlvy-open-brain.selectorLabels" . | nindent 8 }}
+        azure.workload.identity/use: "true"
+    spec:
+      containers:
+      - env:
+        - name: POSTGRES_USER
+          value: {{ quote .Values.openbrain.db.env.postgresUser }}
+        - name: POSTGRES_DB
+          value: {{ quote .Values.openbrain.db.env.postgresDb }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        envFrom:
+        - secretRef:
+            name: {{ include "dlvy-open-brain.fullname" . }}
+        image: {{ .Values.openbrain.db.image.repository }}:{{ .Values.openbrain.db.image.tag }}
+        name: db
+        ports:
+        - containerPort: 5432
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: 5432
+        resources: {{- toYaml .Values.openbrain.db.resources | nindent 10 }}
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: db-data
+        - mountPath: /docker-entrypoint-initdb.d/init.sql
+          name: init-sql
+          subPath: init.sql
+        - name: secrets-store
+          mountPath: "/mnt/secrets"
+          readOnly: true
+      - volumeMounts:
+        - name: secrets-store
+          mountPath: "/mnt/secrets"
+          readOnly: true
+        env:
+        - name: DB_HOST
+          value: {{ quote .Values.openbrain.mcpServer.env.dbHost }}
+        - name: DB_PORT
+          value: {{ quote .Values.openbrain.mcpServer.env.dbPort }}
+        - name: DB_NAME
+          value: {{ quote .Values.openbrain.mcpServer.env.dbName }}
+        - name: DB_USER
+          value: {{ quote .Values.openbrain.mcpServer.env.dbUser }}
+        - name: EMBEDDING_API_BASE
+          value: {{ quote .Values.openbrain.mcpServer.env.embeddingApiBase }}
+        - name: EMBEDDING_MODEL
+          value: {{ quote .Values.openbrain.mcpServer.env.embeddingModel }}
+        - name: CHAT_API_BASE
+          value: {{ quote .Values.openbrain.mcpServer.env.chatApiBase }}
+        - name: CHAT_MODEL
+          value: {{ quote .Values.openbrain.mcpServer.env.chatModel }}
+        - name: PORT
+          value: {{ quote .Values.openbrain.mcpServer.env.port }}
+        - name: KUBERNETES_CLUSTER_DOMAIN
+          value: {{ quote .Values.kubernetesClusterDomain }}
+        envFrom:
+        - secretRef:
+            name: {{ include "dlvy-open-brain.fullname" . }}
+        image: {{ .Values.openbrain.mcpServer.image.repository }}:{{ .Values.openbrain.mcpServer.image.tag }}
+        imagePullPolicy: {{ .Values.openbrain.mcpServer.imagePullPolicy }}
+        name: mcp-server
+        ports:
+        - containerPort: 8000
+          name: http
+        readinessProbe:
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          tcpSocket:
+            port: 8000
+        resources: {{- toYaml .Values.openbrain.mcpServer.resources | nindent 10 }}
+      nodeSelector: {{- toYaml .Values.openbrain.nodeSelector | nindent 8 }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      tolerations: {{- toYaml .Values.openbrain.tolerations | nindent 8 }}
+      topologySpreadConstraints: {{- toYaml .Values.openbrain.topologySpreadConstraints | nindent 8 }}
+      volumes:
+      - name: db-data
+        {{- if .Values.openbrain.db.persistentVolumeClaim.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ include "dlvy-open-brain.fullname" . }}-db-pvc
+        {{- else }}
+        hostPath:
+          path: /var/openbrain/db
+          type: DirectoryOrCreate
+        {{- end }}
+      - configMap:
+          name: {{ include "dlvy-open-brain.fullname" . }}-init-sql
+        name: init-sql
+      - name: secrets-store
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: {{ include "dlvy-open-brain.fullname" . }}
