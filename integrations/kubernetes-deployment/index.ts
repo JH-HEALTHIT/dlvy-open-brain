@@ -270,12 +270,17 @@ function buildServer(): McpServer {
         query: z.string().describe("What to search for"),
         limit: z.number().optional().default(10),
         threshold: z.number().optional().default(0.5),
+        filter: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Metadata filter applied server-side, e.g. { project: "da-lgv-client" }'),
       },
     },
-    async ({ query, limit, threshold }) => {
+    async ({ query, limit, threshold, filter }) => {
       try {
         const qEmb = await getEmbedding(query);
         const embStr = `[${qEmb.join(",")}]`;
+        const filterJson = JSON.stringify(filter ?? {});
 
         const client = await pool.connect();
         try {
@@ -284,9 +289,10 @@ function buildServer(): McpServer {
                     1 - (embedding <=> $1::vector) AS similarity
              FROM thoughts
              WHERE 1 - (embedding <=> $1::vector) >= $2
+               AND ($4::jsonb = '{}'::jsonb OR metadata @> $4::jsonb)
              ORDER BY embedding <=> $1::vector
              LIMIT $3`,
-            [embStr, threshold, limit]
+            [embStr, threshold, limit, filterJson]
           );
 
           if (!result.rows.length) {
@@ -521,9 +527,13 @@ function buildServer(): McpServer {
       },
       inputSchema: {
         content: z.string().describe("The thought to capture"),
+        metadata: z
+          .record(z.string(), z.unknown())
+          .optional()
+          .describe('Extra metadata merged into the stored thought, e.g. { project: "da-lgv-client" }'),
       },
     },
-    async ({ content }) => {
+    async ({ content, metadata: extraMetadata }) => {
       try {
         const [embedding, metadata] = await Promise.all([
           getEmbedding(content),
@@ -531,7 +541,7 @@ function buildServer(): McpServer {
         ]);
 
         const embStr = `[${embedding.join(",")}]`;
-        const meta: Record<string, unknown> = { ...metadata, source: "mcp" };
+        const meta: Record<string, unknown> = { ...metadata, ...(extraMetadata ?? {}), source: "mcp" };
 
         const client = await pool.connect();
         try {
