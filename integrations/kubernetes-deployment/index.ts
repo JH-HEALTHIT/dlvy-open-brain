@@ -15,6 +15,10 @@
  *   CHAT_MODEL - Model name for metadata extraction (default: gpt-4o-mini)
  *   MCP_ACCESS_KEY - Authentication key for MCP endpoint
  *   OPEN_BRAIN_CITATION_BASE_URL - Optional base URL for search/fetch citation links
+ *
+ * NOTE: This is a private, project-scoped deployment. capture_thought and
+ * search_thoughts REQUIRE a non-empty metadata.project / filter.project; calls
+ * without one are rejected so nothing is ever stored or searched unscoped.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -40,6 +44,32 @@ const CHAT_API_KEY = Deno.env.get("CHAT_API_KEY") || EMBEDDING_API_KEY;
 const CHAT_MODEL = Deno.env.get("CHAT_MODEL") || "openai/gpt-4o-mini";
 
 const MCP_ACCESS_KEY = Deno.env.get("MCP_ACCESS_KEY")!;
+
+// This is a private, project-scoped brain: every capture_thought / search_thoughts
+// MUST carry a non-empty metadata.project / filter.project. Enforced unconditionally
+// so nothing is ever written or searched without a project context.
+function hasProject(obj: unknown): boolean {
+  return (
+    !!obj &&
+    typeof obj === "object" &&
+    typeof (obj as Record<string, unknown>).project === "string" &&
+    ((obj as Record<string, unknown>).project as string).trim().length > 0
+  );
+}
+
+function projectRequiredError(tool: string, field: string) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text:
+          `Error: ${tool} requires a non-empty ${field} on this project-scoped ` +
+          `deployment. Provide your project context and retry.`,
+      },
+    ],
+    isError: true,
+  };
+}
 
 // --- PostgreSQL Connection Pool ---
 
@@ -270,12 +300,20 @@ function buildServer(): McpServer {
         query: z.string().describe("What to search for"),
         limit: z.number().optional().default(10),
         threshold: z.number().optional().default(0.5),
+        filter: z
+          .record(z.string(), z.unknown())
+          .describe('REQUIRED metadata filter carrying a project, e.g. { project: "project-A" }'),
       },
     },
-    async ({ query, limit, threshold }) => {
+    async ({ query, limit, threshold, filter }) => {
       try {
+        if (!hasProject(filter)) {
+          return projectRequiredError("search_thoughts", "filter.project");
+        }
+
         const qEmb = await getEmbedding(query);
         const embStr = `[${qEmb.join(",")}]`;
+        const filterJson = JSON.stringify(filter ?? {});
 
         const client = await pool.connect();
         try {
@@ -284,9 +322,10 @@ function buildServer(): McpServer {
                     1 - (embedding <=> $1::vector) AS similarity
              FROM thoughts
              WHERE 1 - (embedding <=> $1::vector) >= $2
+               AND ($4::jsonb = '{}'::jsonb OR metadata @> $4::jsonb)
              ORDER BY embedding <=> $1::vector
              LIMIT $3`,
-            [embStr, threshold, limit]
+            [embStr, threshold, limit, filterJson]
           );
 
           if (!result.rows.length) {
@@ -521,17 +560,24 @@ function buildServer(): McpServer {
       },
       inputSchema: {
         content: z.string().describe("The thought to capture"),
+        metadata: z
+          .record(z.string(), z.unknown())
+          .describe('REQUIRED metadata carrying a project, e.g. { project: "project-A" }'),
       },
     },
-    async ({ content }) => {
+    async ({ content, metadata: extraMetadata }) => {
       try {
+        if (!hasProject(extraMetadata)) {
+          return projectRequiredError("capture_thought", "metadata.project");
+        }
+
         const [embedding, metadata] = await Promise.all([
           getEmbedding(content),
           extractMetadata(content),
         ]);
 
         const embStr = `[${embedding.join(",")}]`;
-        const meta: Record<string, unknown> = { ...metadata, source: "mcp" };
+        const meta: Record<string, unknown> = { ...metadata, ...(extraMetadata ?? {}), source: "mcp" };
 
         const client = await pool.connect();
         try {
